@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /
+
+# Перенаправление всех запросов на index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ view/index.php [L,QSA]
+
+# Максимальный размер загружаемого файла
+php_value upload_max_filesize 5M
+
+# Разрешение на загрузку файлов
+php_value file_uploads On

@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  webserver:
+    container_name: Anime-PHP-webServer
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./app:/var/www/html
+    ports:
+      - 80:80
+    depends_on:
+      - postgres-db
+    networks:
+      anime_network:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  postgres-db:
+    image: postgres:15.3-alpine3.17
+    container_name: Anime-postgres-15
+    command:
+      - "postgres"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+      POSTGRES_DB: anime-2024
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./postgres:/docker-entrypoint-initdb.d
+      - postgresdb-data:/var/lib/postgresql/data
+      - ./postgres:/dump
+    ports:
+      - "5433:5432"
+    networks:
+      anime_network:
+
+volumes:
+  postgresdb-data:
+
+networks:
+  anime_network:
+    driver: bridge
+    name: anime_network
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.37.0.0/25
