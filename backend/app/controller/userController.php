@@ -23,9 +23,9 @@ class UserController
         
     }
 
-    public function getBooks()
+    public function getAnime()
     {
-        $books = $this->model->getBooks();
+        $books = $this->model->getAnime();
 
         echo json_encode($books);
     }

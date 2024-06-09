@@ -1,16 +1,36 @@
 <template>
-  <div class="flex items-center justify-center h-screen">
-    <div class="flex flex-col items-center gap-10">
-      <h1 class="font-bold">Зарегистрируйтесь</h1>
+  <div class="flex items-center justify-between h-screen w-screen">
+    <div class="flex flex-col w-full justify-between h-full pl-12 dark:border-r lg:flex bg-image">
+      <div
+        @click="goToMain"
+        class="flex items-center text-lg font-medium gap-2 w-fit pt-10 pb-2 px-8 bg-[rgba(255,255,255,0.65)] rounded-bl-lg rounded-br-lg hover:cursor-pointer transition-colors hover:bg-[rgba(255,255,255,0.80)]"
+      >
+        <Clapperboard />
+        <p class="text-black text-2xl font-semibold">Cinema</p>
+      </div>
+
+      <div
+        class="flex items-center gap-2 w-[680px] pb-10 pt-4 px-8 bg-[rgba(255,255,255,0.65)] rounded-tl-lg rounded-tr-lg"
+      >
+        <blockquote class="space-y-2">
+          <p class="text-base text-black font-semibold">«Чем дальше в лес Скибиди Доп Ес Ес»</p>
+          <footer class="text-sm text-black">— Сунь Цзы</footer>
+        </blockquote>
+      </div>
+    </div>
+
+    <!-- Блок с формой регистрации -->
+    <div class="flex flex-col justify-center items-center gap-4 px-24 h-full bg-white shadow-2xl">
+      <h2>Зарегистрируйтесь</h2>
       <div class="border-t h-5 w-96 border-purple-600"></div>
 
       <div class="grid w-full max-w-sm items-center gap-1.5">
         <form class="w-96 space-y-6" @submit="onSubmit">
-          <FormField v-slot="{ componentField: loginField }" name="login">
+          <FormField v-slot="{ componentField: EmailField }" name="email">
             <FormItem>
-              <FormLabel>Логин</FormLabel>
+              <FormLabel>Почта</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="Введите ваш логин" v-bind="loginField" />
+                <Input type="text" placeholder="Введите вашу почту" v-bind="EmailField" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -33,19 +53,15 @@
               <FormMessage />
             </FormItem>
           </FormField>
-
-          <!-- Чекбокс -->
-          <FormField v-slot="{ value, handleChange }" type="checkbox" name="person">
-            <FormItem class="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox :checked="value" @update:checked="handleChange" />
-              </FormControl>
-              <div class="space-y-1 leading-none">
-                <FormLabel>Согласен на обработку персональных данных</FormLabel>
-                <FormMessage />
-              </div>
-            </FormItem>
-          </FormField>
+          <div class="flex items-center space-x-2">
+            <Checkbox id="terms" />
+            <label
+              for="terms"
+              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Я согласен на обработку персональных данных
+            </label>
+          </div>
 
           <div class="flex">
             <Toaster />
@@ -56,6 +72,7 @@
           </div>
         </form>
       </div>
+      <Button @click="goToMain" class="w-[50px] mt-2" variant="link">На главную</Button>
     </div>
   </div>
 </template>
@@ -66,6 +83,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/toast'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useRoute, useRouter } from 'vue-router'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
@@ -80,9 +98,14 @@ import {
 } from '@/components/ui/form'
 import { ref } from 'vue'
 import axios from 'axios'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Clapperboard } from 'lucide-vue-next'
 
 const router = useRouter()
+
+const goToMain = () => {
+  localStorage.clear()
+  router.push('/')
+}
 
 const gotToLogin = () => {
   router.push('/auth')
@@ -92,43 +115,41 @@ const gotToLogin = () => {
 
 const formSchema = toTypedSchema(
   z.object({
-    login: z
+    email: z
       .string({ required_error: 'Поле не должно быть пустым' })
-      .min(1, { message: 'Строка не должна быть пустой' })
-      .max(20, { message: 'Логин должен содержать не больше 20 символов' })
-      .regex(/^[a-z0-9_-]{3,20}$/, { message: 'Некоректный логин' }),
+      .email('Это не действительная почта'),
     password: z
       .string({ required_error: 'Поле не должно быть пустым' })
       .min(3, { message: 'Пароль должен содержать минимум 3 символа' })
       .max(20, { message: 'Пароль должен содержать не больше 20 символов' }),
     FIO: z
       .string({ required_error: 'Поле не должно быть пустым' })
-      .regex(/([А-ЯЁ][а-яё]+[\-\s]?){3,}/, { message: 'Заполните правильно ФИО' }),
-    person: z.boolean().default(false).optional()
+      .regex(/([А-ЯЁ][а-яё]+[\-\s]?){3,}/, { message: 'Заполните правильно ФИО' })
   })
 )
 
 const { handleSubmit, errors } = useForm({
-  validationSchema: formSchema,
-  initialValues: {
-    person: true
-  }
+  validationSchema: formSchema
 })
 
 const onSubmit = handleSubmit(async (formData) => {
   const apiFormData = new FormData()
   const userData = formData
 
+  const hashedPassword = await hashPassword(userData.password)
+
+  console.log(hashedPassword)
+
   console.log(userData)
 
   console.log('Клик')
 
-  apiFormData.append('login', userData.login)
-  apiFormData.append('fio', userData.FIO)
-  apiFormData.append('password', userData.password)
+  apiFormData.append('email', userData.email)
+  apiFormData.append('password', hashedPassword)
+  apiFormData.append('full_name', userData.FIO)
 
   try {
-    const response = await axios.post('http://localhost/add-user', apiFormData, {
+    const response = await axios.post('http://localhost:8080/registration.php', apiFormData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -142,7 +163,7 @@ const onSubmit = handleSubmit(async (formData) => {
 
     if (response.data.status == 'error') {
       toast({
-        description: 'Ошибка регистрации, пользователь с таким логином уже существует',
+        description: 'Ошибка регистрации, пользователь с такой почтой уже существует',
         variant: 'destructive'
       })
       return
@@ -150,15 +171,32 @@ const onSubmit = handleSubmit(async (formData) => {
 
     if (response.data.status == 'success') {
       localStorage.clear()
-      localStorage.setItem('id_user', response.data.User.id)
-      localStorage.setItem('login', response.data.User.login)
-      localStorage.setItem('full_name', response.data.User.fio)
+      localStorage.setItem('id_user', response.data.user.id_user)
+      localStorage.setItem('role', response.data.user.role_user)
+      localStorage.setItem('full_name', response.data.user.full_name_user)
+      localStorage.setItem('photo_user', response.data.user.photo_user)
       router.push('/')
     }
   } catch (error) {
     console.error('Ошибка при отправке данных:', error)
   }
 })
+
+async function hashPassword(password) {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  return hashHex
+}
 </script>
 
-<style lang="scss" scoped></style>
+<style scoped>
+.bg-image {
+  background-image: url('../img/auth-wallpaper.jpg');
+  background-size: cover; /* Масштабировать изображение, чтобы оно покрывало весь элемент */
+  background-position: center; /* Центрировать изображение */
+  background-repeat: no-repeat; /* Не повторять изображение */
+}
+</style>

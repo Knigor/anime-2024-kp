@@ -12,12 +12,16 @@ module.exports = {
     requireConfigFile: false
   },
   rules: {
-    // Настройки правил ESLint...
+    'no-unused-vars': 'off', // Отключает правило no-unused-vars
+    'no-useless-escape': 'off',
+    'vue/multi-word-component-names': 'off',
+    'vue/no-reserved-component-names': 'off'
   },
   overrides: [
     {
       files: ['*.css'],
       rules: {
+        // Отключение проверки CSS файлов
         'css/**': 'off'
       }
     }

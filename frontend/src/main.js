@@ -1,32 +1,22 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { router } from './router'
 import './index.css'
 import store from './store'
-import MainPage from './views/MainPage.vue'
-import AuthForm from './views/userAuthForm.vue'
-import registerPage from './views/registerPage.vue'
+import PrimeVue from 'primevue/config'
+import 'primevue/resources/themes/aura-light-green/theme.css'
+import ToastService from 'primevue/toastservice'
 
-const router = createRouter({
-  routes: [
-    {
-      path: '/',
-      component: MainPage
-    },
-    {
-      path: '/auth',
-      component: AuthForm
-    },
-    {
-      path: '/registerPage',
-      component: registerPage
-    }
-  ],
-  history: createWebHistory()
-})
+import Button from 'primevue/button'
 
 const app = createApp(App)
 
+app.use(PrimeVue)
+app.use(ToastService)
+
 app.use(router)
+
 app.mount('#app')
 app.use(store)
+
+app.component('Button', Button)

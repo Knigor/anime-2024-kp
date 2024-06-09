@@ -28,11 +28,12 @@ class Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    public function getBooks()
+    public function getAnime()
     {
-        $stmt = $this->db->query("SELECT id_book, title, author, cover_image, user_id, allow_download
-                                    FROM books
-                                    ORDER BY id_book ASC");
+        $stmt = $this->db->query("SELECT anime.title_anime, anime.year_release, director, studio_manufacture, discription_plot, anime_img, name_genre 
+                                    from anime
+                                    join stores_genre sg on sg.title_anime = anime.title_anime
+                                    join genre g ON g.id_genre = sg.id_genre");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
