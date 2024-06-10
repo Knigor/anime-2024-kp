@@ -21,6 +21,16 @@ class Model
         }
     }
 
+    public function getTopRating()
+    {
+        $stmt = $this->db->query("SELECT title_anime, AVG(rating) AS average_rating, COUNT(*) AS rating_count
+                                    FROM rating_anime
+                                    GROUP BY title_anime 
+                                    ORDER BY average_rating DESC
+                                    LIMIT 10");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function getUsers()
     {
         $stmt = $this->db->query("SELECT login, fio
@@ -67,31 +77,84 @@ class Model
 
     }
 
-
-    public function deleteBook($bookId)
+    public function getView($email)
     {
-        $stm = $this->db->prepare("DELETE
-                                    from books
-                                    using users
-                                    where id_book = :id_book and books.user_id = users.id");
-        
-        $stm->bindParam(':id_book',$bookId);
-    
+                    $stm = $this->db->prepare("SELECT * from view
+                                                where email = :email");
 
-        if ($stm->execute()){
-            return ['status' => 'success', 'message' => 'Карточка удалена'];
-        } else {
-            return ['status' => 'error', 'message' => 'Данные не добавлены'];
-        }
+            $stm->bindParam(':email',$email);
 
+            $stm->execute();
+
+            return $stm->fetchAll(PDO::FETCH_ASSOC);
 
     }
 
-    public function editBook($bookId)
-    {
-        $stm = $this->db->prepare("SELECT * from books where id_book = :id_book");
 
-        $stm->bindParam(':id_book',$bookId);
+    public function addView($title, $year, $email, $history)
+    {
+        $query = "INSERT INTO view (title_anime, year_release, email, history, date_view) 
+                  VALUES (:title_anime, :year_release, :email, :history, CURRENT_DATE)";
+        
+        $stmt = $this->db->prepare($query);
+        
+        // Привязка значений
+        $stmt->bindParam(':title_anime', $title);
+        $stmt->bindParam(':year_release', $year);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':history', $history);
+
+        if($stmt->execute()) {
+            return ['status' => 'success', 'message' => 'Запись успешно добавлена.'];
+        } else {
+            return ['status' => 'error', 'message' => 'Не удалось добавить запись.'];
+        }
+    }
+
+
+
+    public function deleteAnime($title) {
+        try {
+            // Начало транзакции
+            $this->db->beginTransaction();
+    
+            // Удаление записи из таблицы stores_genre
+            $stm1 = $this->db->prepare("DELETE FROM stores_genre WHERE title_anime = :title");
+            $stm1->bindParam(':title', $title);
+    
+            if (!$stm1->execute()) {
+                throw new Exception("Ошибка при удалении записи из таблицы stores_genre");
+            }
+    
+            // Удаление записи из таблицы anime
+            $stm2 = $this->db->prepare("DELETE FROM anime WHERE title_anime = :title");
+            $stm2->bindParam(':title', $title);
+    
+            if (!$stm2->execute()) {
+                throw new Exception("Ошибка при удалении записи из таблицы anime");
+            }
+    
+            // Подтверждение транзакции
+            $this->db->commit();
+    
+            return ['status' => 'success', 'message' => 'Записи удалены'];
+    
+        } catch (Exception $e) {
+            // Откат транзакции в случае ошибки
+            $this->db->rollBack();
+            return ['status' => 'error', 'message' => 'Записи не удалены: ' . $e->getMessage()];
+        }
+    }
+
+    public function editAnime($title)
+    {
+        $stm = $this->db->prepare("SELECT anime.title_anime, anime.year_release, director, studio_manufacture, discription_plot, anime_img, name_genre 
+                                    from anime
+                                    join stores_genre sg on sg.title_anime = anime.title_anime and sg.year_release = anime.year_release 
+                                    join genre g ON g.id_genre = sg.id_genre
+                                    where anime.title_anime = :title_anime");
+
+        $stm->bindParam(':title_anime',$title);
 
         $stm->execute();
 
@@ -100,45 +163,41 @@ class Model
 
     }
 
-    public function editBookPOST($book, $author, $allowDownload, $uniqueName1, $uniqueName, $bookId)
+    public function editAnimePOST($title, $director,$discription, $studio, $uniqueName)
     {
-        if ($bookId === null) {
-            return ['status' => 'error', 'message' => 'id_book is required'];
-        }
+
     
         $fieldsToUpdate = [];
-        $params = [':id_book' => $bookId];
+        $params = [':title' => $title];
     
-        if ($book !== null) {
-            $fieldsToUpdate[] = 'title = :title';
-            $params[':title'] = $book;
+    
+        if ($director !== null) {
+            $fieldsToUpdate[] = 'director = :director';
+            $params[':director'] = $director;
         }
-    
-        if ($author !== null) {
-            $fieldsToUpdate[] = 'author = :author';
-            $params[':author'] = $author;
+
+        if ($discription !== null) {
+            $fieldsToUpdate[] = 'discription_plot = :discription';
+            $params[':discription'] = $discription;
+        }
+
+
+        if ($studio !== null) {
+            $fieldsToUpdate[] = 'studio_manufacture = :studio';
+            $params[':studio'] = $studio;
         }
     
         if ($uniqueName !== null) {
-            $fieldsToUpdate[] = 'cover_image = :cover_image';
+            $fieldsToUpdate[] = 'anime_img = :cover_image';
             $params[':cover_image'] = $uniqueName;
         }
     
-        if ($uniqueName1 !== null) {
-            $fieldsToUpdate[] = 'book_file = :book_file';
-            $params[':book_file'] = $uniqueName1;
-        }
-    
-        if ($allowDownload !== null) {
-            $fieldsToUpdate[] = 'allow_download = :allow_download';
-            $params[':allow_download'] = $allowDownload;
-        }
     
         if (empty($fieldsToUpdate)) {
             return ['status' => 'error', 'message' => 'No fields to update'];
         }
     
-        $sql = 'UPDATE books SET ' . implode(', ', $fieldsToUpdate) . ' WHERE id_book = :id_book';
+        $sql = 'UPDATE anime SET ' . implode(', ', $fieldsToUpdate) . ' WHERE title_anime = :title';
         $stm = $this->db->prepare($sql);
     
         foreach ($params as $param => $value) {
@@ -152,94 +211,138 @@ class Model
         }
     }
 
-    public function addBook($book,$author,$allowDownload,$userId,$uniqueName1,$uniqueName){
-        $stm = $this->db->prepare("INSERT into books (title, author, cover_image, book_file, allow_download, user_id)
-        values (:title, :author, :cover_image, :book_file, :allow_download, :user_id)");
-
-        $stm->bindParam(':title',$book);
-        $stm->bindParam(':author',$author);
-        $stm->bindParam(':cover_image',$uniqueName);
-        $stm->bindParam(':book_file',$uniqueName1);
-        $stm->bindParam(':allow_download',$allowDownload);
-        $stm->bindParam(':user_id',$userId);
+    
 
 
-        if ($stm->execute()){
+    public function addAnime($title, $year, $director, $studio, $description, $genre, $uniqueName) {
+        try {
+            // Начало транзакции
+            $this->db->beginTransaction();
+    
+            // Первый запрос
+            $stm1 = $this->db->prepare("INSERT INTO anime (title_anime, year_release, director, studio_manufacture, discription_plot, anime_img)
+                VALUES (:title, :year_release, :director, :studio_manufacture, :discription_plot, :anime_img)");
+    
+            $stm1->bindParam(':title', $title);
+            $stm1->bindParam(':year_release', $year);
+            $stm1->bindParam(':director', $director);
+            $stm1->bindParam(':studio_manufacture', $studio);
+            $stm1->bindParam(':discription_plot', $description);
+            $stm1->bindParam(':anime_img', $uniqueName);
+    
+            if (!$stm1->execute()) {
+                throw new Exception("Ошибка при выполнении первого запроса");
+            }
+    
+            // Второй запрос
+            $stm2 = $this->db->prepare("INSERT INTO stores_genre (id_genre, title_anime, year_release)
+                VALUES (:id_genre, :title, :year_release)");
+    
+            $stm2->bindParam(':id_genre', $genre);
+            $stm2->bindParam(':title', $title);
+            $stm2->bindParam(':year_release', $year);
+    
+            if (!$stm2->execute()) {
+                throw new Exception("Ошибка при выполнении второго запроса");
+            }
+    
+            // Подтверждение транзакции
+            $this->db->commit();
+    
             return ['status' => 'success', 'message' => 'Данные добавлены'];
-        } else {
-            return ['status' => 'error', 'message' => 'Данные не добавлены'];
+    
+        } catch (Exception $e) {
+            // Откат транзакции в случае ошибки
+            $this->db->rollBack();
+            return ['status' => 'error', 'message' => 'Данные не добавлены: ' . $e->getMessage()];
         }
-        
+    }
+
+    public function getSettings($email)
+    {
+        $stmt = $this->db->prepare("SELECT email, id_profile, name_user, type_user, photo_user  FROM \"user\" WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        unset($user['0']);        
+        unset($user['1']);        
+        unset($user['2']);        
+        unset($user['3']);        
+        unset($user['4']);        
+
+        return $user;
 
     }
 
-    public function addUsers($login,$fio,$password)
+
+    public function addUsers($email,$full_name,$password,$role_user)
     {
 
-        $checkStmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE login = :login");
-        $checkStmt->bindParam(':login', $login);
-        $checkStmt->execute();
-        $userExists = $checkStmt->fetchColumn();
+        
+        $stmtemail = $this->db->prepare("SELECT * FROM \"user\" WHERE email = ?");
+        $stmtemail->execute([$email]);
+        $useremail = $stmtemail->fetch();
 
-
-        if ($userExists > 0)
+        if ($useremail > 0)
         {
 
-            return ['status' => 'error', 'message' => 'Данный пользователь с таким логином уже существует'];
+            return ['status' => 'error', 'message' => 'Данный пользователь с такой почтой уже существует'];
 
         } else 
         {
-            $hashed_password = hash('sha256', $password);
 
-            $stm = $this->db->prepare("INSERT into users (login, fio, hash_password) 
-                                        values (:login,:fio,:hash_password) ");
-    
-            $stm->bindParam(':login',$login);
-            $stm->bindParam(':fio',$fio);
-            $stm->bindParam(':hash_password',$hashed_password);
-    
-            if ($stm->execute()) {
+            
 
-                $stm2 = $this->db->query("SELECT id, login, fio
-                                                from users
-                                                order by id desc
-                                                limit 1");
+            $data = [
+                'email' => $email,
+                'password' => $password,
+                'full_name_user' => $full_name,
+                'role_user' => $role_user,
+            ];
 
-                // return $stm2->fetchAll(PDO::FETCH_ASSOC);
-                
-                return ['status' => 'success', 'User' => $stm2->fetch(PDO::FETCH_OBJ)];
-            } else {
-                return ['status' => 'error', 'message' => 'Ошибка при добавлении пользователя'];
-            }
+            $data_json = [
+                'email' => $email,
+                'full_name_user' => $full_name,
+                'role_user' => $role_user,
+                'photo_user' => 'empty.svg'
+            ];
+
+            $stmtInsert = $this->db->prepare("INSERT INTO \"user\" (email, id_profile, name_user, hash_password, date_registration, type_user, photo_user) VALUES (:email, 1,:full_name_user,:password,'2023-01-01',:role_user, 'empty.svg' )");
+            $stmtInsert->execute($data);
+
+
+            return ['status' => 'success', 'user' => $data_json];
+
+            exit();
 
         }
     }
 
-    public function authUsers($login,$password)
+    public function authUsers($email,$password)
     {
        
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE login = :login");
-        $stmt->bindParam(':login', $login);
-        $stmt->execute();
+        $stmt = $this->db->prepare("SELECT * 
+                                    from \"user\"
+                                    where email = ? and hash_password = ? ");
+        $stmt->execute([$email, $password]);
         $user = $stmt->fetch();
 
-        if ($user && hash('sha256', $password) === $user['hash_password']) {
-            // Успешная аутентификация
+        if ($user) {
+
             $_SESSION["user"] = $user;
+
+            $role = $user['type_user'];
+            $fullName = $user['name_user'];
+            $photo = $user['photo_user']; 
+            $email = $user['email']; 
+
             
-            // Добавляем выборку роли и ФИО пользователя
-            $login = $user['login'];
-            $fio = $user['fio'];
-            $idUser = $user['id'];
-            
-            // Отправка JSON-ответа с ФИО пользователя
-            header('Content-Type: application/json');
-            return ['status' => 'success', 'id' => $idUser,'login' => $login, 'full_name' => $fio];
+            return ['status' => 'success', 'id_profile' => $user['id_profile'], 'role' => $role, 'full_name' => $fullName, 'photo_user' => $photo, 'email' => $email];
             exit();
         } else {
-            // Ошибка авторизации
-            header('Content-Type: application/json');
-            return ['status' => 'error', 'message' => 'Неверное имя пользователя или пароль.'];
+
+            
+            return ['status' => 'error', 'message' => 'Неверный email пользователя или пароль.'];
             exit();
         }
 

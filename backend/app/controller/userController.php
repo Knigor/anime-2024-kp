@@ -13,6 +13,12 @@ class UserController
         $this->model = new Model();
     }
 
+    public function getTopRating()
+    {
+        $rating = $this->model->getTopRating();
+        
+        echo json_encode($rating);
+    }
 
     public function getUsers()
     {
@@ -30,32 +36,23 @@ class UserController
         echo json_encode($books);
     }
 
-    public function editBookPOST()
+    public function editAnimePOST()
     {
         // Получаем данные из POST-запроса
-        $book = $_POST['books'] ?? null;
-        $author = $_POST['author'] ?? null;
-        $allowDownload = $_POST['allow_download'] ?? null;
-        $bookId = $_POST['id_book'] ?? null;
+        $title = $_POST['title'] ?? null;
+        $director = $_POST['director'] ?? null;
+        $studio = $_POST['studio'] ?? null;
+        $discription = $_POST['discription'] ?? null;
+        $genre = $_POST['genre'] ?? null;
 
         // Снизу файлы
         $coverImage = $_FILES['cover_image'] ?? null;
-        $book_file = $_FILES['book_file'] ?? null;
+        
 
-        $uniqueName1 = null;
+        
         $uniqueName = null;
 
-        // Обработка файла книги
-        if ($book_file && $book_file['error'] === UPLOAD_ERR_OK) {
-            $uniqueName1 = uniqid('book_', true) . '.' . pathinfo($book_file['name'], PATHINFO_EXTENSION);
-            $uploadDirectory = '../view/files/';
-            $destination = $uploadDirectory . $uniqueName1;
 
-            if (!move_uploaded_file($book_file['tmp_name'], $destination)) {
-                echo json_encode(['error' => 'Error saving book file']);
-                return;
-            }
-        }
 
         // Обработка обложки книги
         if ($coverImage && $coverImage['error'] === UPLOAD_ERR_OK) {
@@ -70,47 +67,26 @@ class UserController
         }
 
         // Вызов метода модели с переданными параметрами
-        $success = $this->model->editBookPOST($book, $author, $allowDownload, $uniqueName1, $uniqueName, $bookId);
+        $success = $this->model->editAnimePOST($title, $director,$discription, $studio, $uniqueName,$genre);
 
         echo json_encode($success);
     }
 
-    public function addBooks()
+    public function addAnime()
     {
         // ниже данные
-        $book = $_POST['books'] ?? null;
-        $author = $_POST['author'] ?? null;
-        $allowDownload = $_POST['allow_download'] ?? null;
-        $userId = $_POST['user_id'] ?? null;
+        $title = $_POST['title'] ?? null;
+        $year = $_POST['year'] ?? null;
+        $director = $_POST['director'] ?? null;
+        $studio = $_POST['studio'] ?? null;
+        $discription = $_POST['discription'] ?? null;
+        $genre = $_POST['genre'] ?? null;
+        
+        
 
         // Снизу файлы
         $coverImage = $_FILES['cover_image'] ?? null;
-        $book_file = $_FILES['book_file'] ?? null;
 
-        // echo "$book \n";
-        // echo "$author \n";
-        // echo "$allowDownload \n";
-        // echo "$userId \n";
-
-        // перемещаем файл
-
-        if ($book_file && $book_file['error'] === UPLOAD_ERR_OK)
-        {
-            $uniqueName1 = uniqid('book_', true) . '.' . pathinfo($book_file['name'], PATHINFO_EXTENSION);
-
-            $uploadDirectory = '../view/files/';
-
-            $destination = $uploadDirectory . $uniqueName1;
-
-
-            if (move_uploaded_file($book_file['tmp_name'], $destination)) {
-               // echo "Файл успешно загружен и сохранен под именем: " . $uniqueName1;
-            } else {
-               // echo "Ошибка при сохранении файла.";
-            }
-
-
-        }
 
         // перемещаем обложку
 
@@ -131,7 +107,7 @@ class UserController
               //  echo "Ошибка при сохранении файла.";
             }
 
-            $success = $this->model->addBook($book,$author,$allowDownload,$userId,$uniqueName1,$uniqueName);
+            $success = $this->model->addAnime($title,$year,$director,$studio,$discription,$genre,$uniqueName);
 
             echo json_encode($success);
 
@@ -142,15 +118,33 @@ class UserController
         
     }
 
+    public function getSettings()
+    {
+        $email = $_POST["email"];
+
+        if ($email){
+            $success = $this->model->getSettings($email);
+
+            echo json_encode($success);
+        } else 
+        {
+            echo json_encode(['status' => 'error', 'message' => 'Данные пусты']);
+        }
+
+    }
+
+
+
     public function addUsers()
     {
-        $login = $_POST['login'] ?? null;
-        $fio = $_POST['fio'] ?? null;
-        $password = $_POST['password'] ?? null;
+        $email = $_POST["email"];
+        $full_name = $_POST["full_name"];
+        $password = $_POST["password"];
+        $role_user = isset($_POST["role"]) ? $_POST["role"] : 'user';
 
-        if ($login && $fio && $password){
+        if ($email && $full_name && $password && $role_user){
 
-            $success = $this->model->addUsers($login,$fio,$password);
+            $success = $this->model->addUsers($email,$full_name,$password,$role_user);
 
             echo json_encode($success);
 
@@ -173,31 +167,53 @@ class UserController
 
     }
 
-    public function deleteBook()
+    public function getView()
     {
-        $bookId = $_POST['id'] ?? null;
+        $email = $_POST['email'] ?? null;
 
-        $success = $this->model->deleteBook($bookId);
+
+        $success = $this->model->getView($email);
 
         echo json_encode($success);
     }
 
-    public function editBook()
+    public function addView()
     {
-        $bookId = $_POST['id'] ?? null;
+        $title = $_POST['title'] ?? null;
+        $year = $_POST['year'] ?? null;
+        $email = $_POST['email'] ?? null;
+        $history = $_POST['history'] ?? null;
 
-        $success = $this->model->editBook($bookId);
+        $success = $this->model->addView($title,$year,$email,$history);
+
+        echo json_encode($success);
+    }
+
+    public function deleteAnime()
+    {
+        $title = $_POST['title'] ?? null;
+
+        $success = $this->model->deleteAnime($title);
+
+        echo json_encode($success);
+    }
+
+    public function editAnime()
+    {
+        $title = $_POST['title'] ?? null;
+
+        $success = $this->model->editAnime($title);
         
         echo json_encode($success);
     }
     
     public function authUsers()
     {
-        $login = $_POST['login'] ?? null;
-        $password = $_POST['password'] ?? null;
+        $email = $_POST["email"];
+        $password = $_POST["password"];
 
-        if ($login && $password){
-            $success = $this->model->authUsers($login,$password);
+        if ($email && $password){
+            $success = $this->model->authUsers($email,$password);
 
 
             echo json_encode($success);
