@@ -16,7 +16,7 @@
       </div>
       <div class="flex items-center gap-6 mt-4 mr-16">
         <Avatar v-if="(isvisible = true)">
-          <AvatarImage src="http://localhost/view/images/avatar.svg" alt="@radix-vue" />
+          <AvatarImage :src="`http://localhost/view/images/${avatar}`" alt="@radix-vue" />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
         <Button v-if="(isVisibleAdmin = true)" @click="addAnime" class="w-[120px]" variant="link">
@@ -104,6 +104,14 @@ const addAnime = () => {
 const goToMain = () => {
   router.push('/')
 }
+
+const avatar = ref('')
+
+if (localStorage.length !== 0) {
+  avatar.value = localStorage.photo_user
+}
+
+console.log(localStorage)
 
 let btnVariant1 = 'ghost'
 let btnVariant2 = 'ghost'

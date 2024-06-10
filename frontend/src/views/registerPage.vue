@@ -149,7 +149,7 @@ const onSubmit = handleSubmit(async (formData) => {
   apiFormData.append('full_name', userData.FIO)
 
   try {
-    const response = await axios.post('http://localhost:8080/registration.php', apiFormData, {
+    const response = await axios.post('http://localhost/add-user', apiFormData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -171,10 +171,10 @@ const onSubmit = handleSubmit(async (formData) => {
 
     if (response.data.status == 'success') {
       localStorage.clear()
-      localStorage.setItem('id_user', response.data.user.id_user)
+      localStorage.setItem('email', response.data.user.email)
       localStorage.setItem('role', response.data.user.role_user)
       localStorage.setItem('full_name', response.data.user.full_name_user)
-      localStorage.setItem('photo_user', response.data.user.photo_user)
+      localStorage.setItem('photo_user', 'empty.svg')
       router.push('/')
     }
   } catch (error) {

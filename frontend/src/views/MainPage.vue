@@ -27,13 +27,17 @@
         </div>
       </div>
       <div class="flex items-center gap-6 mt-4 mr-16">
-        <Avatar v-if="(isvisible = true)">
-          <AvatarImage src="http://localhost/view/images/avatar.svg" alt="@radix-vue" />
+        <Avatar v-if="isvisible">
+          <AvatarImage :src="`http://localhost/view/images/${avatar}`" alt="@radix-vue" />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
-        <Button v-if="(isVisibleAdmin = true)" @click="addAnime" class="w-[120px]" variant="link">
+        <Button v-if="isVisibleAdmin" @click="getRating" class="w-[80px]" variant="link">
+          Топ рейтинг
+        </Button>
+        <Button v-if="isVisibleAdmin" @click="addAnime" class="w-[120px]" variant="link">
           Добавить аниме
         </Button>
+
         <nav class="flex gap-8" v-if="isvisible">
           <Button @click="goToProfile" class="w-[10px]" variant="link">Профиль</Button>
           <Button @click="goToAuth" class="w-[10px]" variant="link">Выйти</Button>
@@ -46,10 +50,10 @@
         <card
           v-for="item in queryItems"
           :key="item"
-          class="h-[480px] w-[280px] bg-indigo-100 flex flex-col justify-between border-4 border-black"
+          class="h-[480px] w-[290px] bg-indigo-100 flex flex-col justify-between border-4 border-black"
         >
           <headerCard class="flex flex-col items-center mt-4 gap-4">
-            <p>{{ item.title_anime }}</p>
+            <p class="font-bold">{{ item.title_anime }}</p>
             <img
               class="h-[220px] w-[170px]"
               :src="`http://localhost/view/images/${item.anime_img}`"
@@ -58,7 +62,7 @@
           <mainCard class="flex flex-col items-start ml-4 gap-1 w-full overflow-hidden">
             <div class="font-semibold">
               Название:
-              <span class="font-normal text-violet-700 break-words">{{ item.title_anime }}</span>
+              <span class="font-normal text-violet-700">{{ item.title_anime }}</span>
             </div>
             <div class="font-semibold">
               Директор: <span class="font-normal text-violet-700">{{ item.director }}</span>
@@ -72,14 +76,29 @@
           </mainCard>
 
           <footerCard class="flex items-center justify-between">
-            <Button class="text-pink-500" variant="link">Открыть</Button>
+            <router-link :to="{ path: `/animeCard/${item.title_anime}` }"> </router-link>
+            <div class="flex">
+              <Button class="text-pink-500 w-[50px]" variant="link">Открыть</Button>
+              <Button
+                v-if="isvisible"
+                @click="addView(item.title_anime, item.year_release)"
+                class="text-green-500 w-[120px]"
+                variant="link"
+                >Посмотреть</Button
+              >
+            </div>
+            <Toaster />
             <div v-if="isVisibleAdmin" class="flex flex-wrap items-center gap-4 mr-4">
-              <Cog
-                class="cursor-pointer active:bg-orange-600 transition-colors rounded-full"
-                size="28px"
-                color="#ffae00"
-              />
+              <router-link :to="{ path: `/editAnime/${item.title_anime}` }">
+                <Cog
+                  class="cursor-pointer active:bg-orange-600 transition-colors rounded-full"
+                  size="28px"
+                  color="#ffae00"
+                />
+              </router-link>
+
               <CircleX
+                @click="deleteAnime(item.title_anime)"
                 class="cursor-pointer active:bg-red-600 transition-colors rounded-full"
                 size="28px"
                 color="#ff0000"
@@ -126,17 +145,13 @@ import {
 } from '@/components/ui/pagination'
 import { CircleX } from 'lucide-vue-next'
 import { Cog } from 'lucide-vue-next'
+import jsPDF from 'jspdf'
+import pdfMake from 'pdfmake/build/pdfmake'
+import pdfFonts from 'pdfmake/build/vfs_fonts'
 
 const { toast } = useToast()
 
 const router = useRouter()
-
-const showToast = () => {
-  toast({
-    title: 'Hello, World',
-    variant: 'warning'
-  })
-}
 
 const goToProfile = () => {
   router.push('/profilePage')
@@ -150,18 +165,43 @@ const goToAuth = () => {
   router.push('/auth')
 }
 
-// удаляем книгу
+// добавляем в просмотренные
 
-const deleteBook = async (id) => {
+const addView = async (title, year) => {
   const formData = new FormData()
-  formData.append('id', id)
-
-  console.log(id)
+  formData.append('title', title)
+  formData.append('year', year)
+  formData.append('email', localStorage.email)
+  formData.append('history', title)
 
   try {
-    const response = await axios.post('http://localhost/deleteBook', formData)
+    const response = await axios.post('http://localhost/addView', formData)
 
     console.log(response.data)
+
+    if (response.data.status == 'success') {
+      toast({
+        description: 'Аниме добавлено в просмотренные'
+      })
+    } else {
+      alert('Ошибка добавления')
+    }
+  } catch (error) {
+    console.error('Ошибка при скачивании файла:', error)
+  }
+}
+
+// удаляем аниме
+
+const deleteAnime = async (title) => {
+  const formData = new FormData()
+  formData.append('title', title)
+
+  try {
+    const response = await axios.post('http://localhost/deleteAnime', formData)
+
+    console.log(response.data)
+    animeFetch()
   } catch (error) {
     console.error('Ошибка при скачивании файла:', error)
   }
@@ -223,6 +263,8 @@ const clearSearch = () => {
 
 const items = ref([])
 
+const avatar = ref('')
+
 const animeFetch = async () => {
   try {
     const response = await axios.get('http://localhost/anime')
@@ -236,16 +278,54 @@ const animeFetch = async () => {
 
 onMounted(animeFetch)
 
+const jsonData = ref([])
+
+function generatePDF() {}
+
+// скачиваем топ рейтинг аниме
+const getRating = async () => {
+  try {
+    const response = await axios.get('http://localhost/getTopRating')
+    const animeData = response.data
+
+    console.log(animeData)
+
+    const documentDefinition = {
+      content: []
+    }
+
+    animeData.forEach((elem) => {
+      documentDefinition.content.push({
+        text: `${elem.title_anime}, Рейтинг: ${Math.floor(elem.average_rating)}`,
+        fontSize: 12,
+        margin: [0, 0, 0, 10] // отступы сверху, справа, снизу, слева
+      })
+    })
+
+    pdfMake.vfs = pdfFonts.pdfMake.vfs // Регистрируем шрифты
+
+    pdfMake.createPdf(documentDefinition).download('newFile.pdf')
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 console.log(localStorage)
 
-const user = ref('')
 const isvisible = ref(true)
 
 const isVisibleAdmin = ref(false)
 
+if (localStorage.role == 'admin') {
+  isVisibleAdmin.value = true
+} else {
+  isVisibleAdmin.value = false
+}
+
 if (localStorage.length !== 0) {
   isvisible.value = true
-  user.value = localStorage.login
+
+  avatar.value = localStorage.photo_user
 } else {
   isvisible.value = false
 }

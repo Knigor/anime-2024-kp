@@ -12,11 +12,11 @@
             <TableHead class="font-bold">Дата просмотра</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody v-for="item in historyData" :key="item[0]">
+        <TableBody v-for="item in historyData" :key="item">
           <TableRow>
-            <TableCell>{{ item[1] }}</TableCell>
-            <TableCell>{{ item[2] }}</TableCell>
-            <TableCell>{{ item[3] }}</TableCell>
+            <TableCell>{{ item.title_anime }}</TableCell>
+            <TableCell>{{ item.year_release }}</TableCell>
+            <TableCell>{{ item.date_view }}</TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -34,11 +34,27 @@ import {
   TableRow
 } from '@/components/ui/table'
 
-import { ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
+import axios from 'axios'
+import { useRoute, useRouter } from 'vue-router'
 
-const historyData = ref([
-  [1, 'Наруто', '2002', '2023-06-01'],
-  [2, 'Тетрадь смерти', '2006', '2023-06-01'],
-  [3, 'Атака титанов', '2013', '2023-06-01']
-])
+const historyData = ref([])
+
+console.log(localStorage)
+
+const animeFetch = async () => {
+  const formData = new FormData()
+  formData.append('email', localStorage.email)
+
+  try {
+    const response = await axios.post('http://localhost/getView', formData)
+
+    historyData.value = response.data
+    console.log(response.data)
+  } catch (error) {
+    console.error('Ошибка при скачивании файла:', error)
+  }
+}
+
+onMounted(animeFetch)
 </script>

@@ -7,10 +7,11 @@
             <Button @click="backPage" class="ml-[-15px]" variant="link"> Вернуться </Button>
             <p class="text-xl text-inter-title mb-1">Добавьте новое аниме</p>
 
-            <Input v-model="books" class="mt-5 mb-5" placeholder="Введите название аниме" />
-            <Input v-model="author" class="mt-5 mb-5" placeholder="Введите директора студии" />
-            <Input v-model="author" class="mt-5 mb-5" placeholder="Введите студию" />
-            <Textarea class="mt-5 mb-5" placeholder="Добавьте описание" />
+            <Input v-model="title" class="mt-5 mb-5" placeholder="Введите название аниме" />
+            <Input v-model="year" class="mt-5 mb-5" placeholder="Введите год выхода" />
+            <Input v-model="director" class="mt-5 mb-5" placeholder="Введите директора студии" />
+            <Input v-model="studio" class="mt-5 mb-5" placeholder="Введите студию" />
+            <Textarea v-model="discription" class="mt-5 mb-5" placeholder="Добавьте описание" />
             <DropdownMenu class="mt-5 mb-5">
               <DropdownMenuTrigger as-child>
                 <Button variant="outline"> Выберите жанр аниме </Button>
@@ -19,18 +20,16 @@
                 <DropdownMenuLabel>Выберите жанр аниме</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup v-model="position">
-                  <DropdownMenuRadioItem value="Экшен"> Экшен </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Приключения"> Приключения </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Ужасы"> Ужасы </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Фантастика"> Фантастика </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Фэнтези"> Фэнтези </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Драма"> Драма </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Комедия"> Комедия </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Повседневность">
-                    Повседневность
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Романтика"> Романтика </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Сёнэн"> Сёнэн </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="1"> Экшен </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="2"> Приключения </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="3"> Ужасы </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="4"> Фантастика </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="5"> Фэнтези </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="6"> Драма </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="7"> Комедия </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="8"> Повседневность </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="9"> Романтика </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="10"> Сёнэн </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -114,13 +113,6 @@ import {
 const router = useRouter()
 
 const coverImage = ref(null)
-const bookFile = ref(null)
-let checkDownload = ref(false)
-
-const activeDownload = () => {
-  checkDownload.value = !checkDownload.value
-  console.log(checkDownload.value)
-}
 
 const handleCoverUpload = (event) => {
   const file = event.target.files[0]
@@ -130,36 +122,31 @@ const handleCoverUpload = (event) => {
   }
 }
 
-const handleBookUpload = (event) => {
-  const file = event.target.files[0]
-  if (file) {
-    bookFile.value = file
-    console.log('Выбранная книга:', file.name)
-  }
-}
-
-let author = ref('')
-let books = ref('')
+const title = ref('')
+const year = ref('')
+const director = ref('')
+const studio = ref('')
+const discription = ref('')
+const position = ref('')
 
 const saveData = async () => {
   const formData = new FormData()
-  formData.append('books', books.value)
-  formData.append('author', author.value)
-  formData.append('allow_download', checkDownload.value)
+  formData.append('title', title.value)
+  formData.append('year', year.value)
+  formData.append('director', director.value)
+  formData.append('studio', studio.value)
+  formData.append('discription', director.value)
+  formData.append('genre', position.value)
   if (coverImage.value) {
     formData.append('cover_image', coverImage.value)
   }
-  if (bookFile.value) {
-    formData.append('book_file', bookFile.value)
-  }
-  formData.append('user_id', localStorage.id_user)
 
   for (var pair of formData.entries()) {
     console.log(pair[0] + ': ' + pair[1])
   }
 
   try {
-    const response = await axios.post('http://localhost/add-book', formData, {
+    const response = await axios.post('http://localhost/add-anime', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }

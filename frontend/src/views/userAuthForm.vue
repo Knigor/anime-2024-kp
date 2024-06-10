@@ -127,7 +127,7 @@ const onSubmit = handleSubmit(async (formData) => {
   console.log(userData)
 
   try {
-    const response = await axios.post('http://localhost:8080/auth.php', apiFormData, {
+    const response = await axios.post('http://localhost/auth-user', apiFormData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -136,10 +136,11 @@ const onSubmit = handleSubmit(async (formData) => {
 
     if (response.data.status == 'success') {
       localStorage.clear()
-      localStorage.setItem('id_user', response.data.id_user)
+      localStorage.setItem('id_profile', response.data.id_profile)
       localStorage.setItem('role', response.data.role)
       localStorage.setItem('full_name', response.data.full_name)
       localStorage.setItem('photo_user', response.data.photo_user)
+      localStorage.setItem('email', response.data.email)
       router.push('/')
     }
 
